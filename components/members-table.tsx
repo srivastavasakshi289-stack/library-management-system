@@ -26,9 +26,10 @@ import type { Member } from "@/types/database"
 
 interface MembersTableProps {
   members: Member[]
+  onUpdate?: () => void
 }
 
-export function MembersTable({ members }: MembersTableProps) {
+export function MembersTable({ members, onUpdate }: MembersTableProps) {
   const [search, setSearch] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -154,6 +155,7 @@ export function MembersTable({ members }: MembersTableProps) {
         open={formOpen}
         onOpenChange={setFormOpen}
         member={selectedMember}
+        onSuccess={onUpdate}
       />
 
       {selectedMember && (
@@ -163,6 +165,7 @@ export function MembersTable({ members }: MembersTableProps) {
           itemType="member"
           itemId={selectedMember.id}
           itemName={selectedMember.name}
+          onSuccess={onUpdate}
         />
       )}
     </div>

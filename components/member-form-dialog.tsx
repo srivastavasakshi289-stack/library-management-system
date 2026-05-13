@@ -29,9 +29,10 @@ interface MemberFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   member?: Member | null
+  onSuccess?: () => void
 }
 
-export function MemberFormDialog({ open, onOpenChange, member }: MemberFormDialogProps) {
+export function MemberFormDialog({ open, onOpenChange, member, onSuccess }: MemberFormDialogProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -68,7 +69,7 @@ export function MemberFormDialog({ open, onOpenChange, member }: MemberFormDialo
       }
 
       onOpenChange(false)
-      router.refresh()
+      onSuccess?.()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong")
     } finally {

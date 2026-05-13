@@ -1,25 +1,31 @@
-import { createClient } from "@/lib/supabase/server"
+"use client"
+
+import { Sidebar } from "@/components/sidebar"
 import { BooksTable } from "@/components/books-table"
-import type { Book } from "@/types/database"
+import { getBooks } from "@/lib/database"
+import useSWR from "swr"
+import { Spinner } from "@/components/ui/spinner"
 
-export default async function BooksPage() {
-  const supabase = await createClient()
-
-  const { data: books } = await supabase
-    .from("books")
-    .select("*")
-    .order("title")
+export default function BooksPage() {
+  const { data: books, isLoading, mutate } = useSWR('books', getBooks)
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Books</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your library book collection
-        </p>
-      </div>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="flex-1 p-8 bg-background">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Books</h1>
+          <p className="text-muted-foreground">Manage your library book collection</p>
+        </div>
 
-      <BooksTable books={(books as Book[]) || []} />
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Spinner className="h-8 w-8" />
+          </div>
+        ) : (
+          <BooksTable books={books || []} onUpdate={mutate} />
+        )}
+      </main>
     </div>
   )
 }

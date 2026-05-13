@@ -22,7 +22,7 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-card border-r border-border">
+    <aside className="w-64 flex-shrink-0 flex flex-col bg-card border-r border-border min-h-screen">
       <div className="flex items-center gap-2 px-6 py-5 border-b border-border">
         <Library className="h-8 w-8 text-primary" />
         <span className="text-xl font-semibold text-foreground">LibraryMS</span>

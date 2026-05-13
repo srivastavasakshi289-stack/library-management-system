@@ -29,6 +29,7 @@ interface BookFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   book?: Book | null
+  onSuccess?: () => void
 }
 
 const categories = [
@@ -44,7 +45,7 @@ const categories = [
   "Romance",
 ]
 
-export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps) {
+export function BookFormDialog({ open, onOpenChange, book, onSuccess }: BookFormDialogProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -86,7 +87,7 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
       }
 
       onOpenChange(false)
-      router.refresh()
+      onSuccess?.()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong")
     } finally {

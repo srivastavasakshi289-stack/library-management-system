@@ -2,17 +2,23 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Users, BookMarked, AlertTriangle } from "lucide-react"
-import type { DashboardStats } from "@/types/database"
 
 interface StatsCardsProps {
-  stats: DashboardStats
+  stats?: {
+    totalBooks?: number
+    availableBooks?: number
+    totalMembers?: number
+    activeMembers?: number
+    activeBorrowings?: number
+    overdueBorrowings?: number
+  }
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
   const cards = [
     {
       title: "Total Books",
-      value: stats.totalBooks,
+      value: stats?.totalBooks ?? 0,
       icon: BookOpen,
       description: "Books in collection",
       color: "text-blue-600",
@@ -20,7 +26,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     },
     {
       title: "Total Members",
-      value: stats.totalMembers,
+      value: stats?.totalMembers ?? 0,
       icon: Users,
       description: "Registered members",
       color: "text-emerald-600",
@@ -28,7 +34,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     },
     {
       title: "Active Borrowings",
-      value: stats.activeBorrowings,
+      value: stats?.activeBorrowings ?? 0,
       icon: BookMarked,
       description: "Currently borrowed",
       color: "text-amber-600",
@@ -36,7 +42,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     },
     {
       title: "Overdue",
-      value: stats.overdueBorrowings,
+      value: stats?.overdueBorrowings ?? 0,
       icon: AlertTriangle,
       description: "Overdue returns",
       color: "text-red-600",

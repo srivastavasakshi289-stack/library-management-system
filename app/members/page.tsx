@@ -1,25 +1,31 @@
-import { createClient } from "@/lib/supabase/server"
+"use client"
+
+import { Sidebar } from "@/components/sidebar"
 import { MembersTable } from "@/components/members-table"
-import type { Member } from "@/types/database"
+import { getMembers } from "@/lib/database"
+import useSWR from "swr"
+import { Spinner } from "@/components/ui/spinner"
 
-export default async function MembersPage() {
-  const supabase = await createClient()
-
-  const { data: members } = await supabase
-    .from("members")
-    .select("*")
-    .order("name")
+export default function MembersPage() {
+  const { data: members, isLoading, mutate } = useSWR('members', getMembers)
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Members</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage library members and their information
-        </p>
-      </div>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="flex-1 p-8 bg-background">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Members</h1>
+          <p className="text-muted-foreground">Manage library members and their information</p>
+        </div>
 
-      <MembersTable members={(members as Member[]) || []} />
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Spinner className="h-8 w-8" />
+          </div>
+        ) : (
+          <MembersTable members={members || []} onUpdate={mutate} />
+        )}
+      </main>
     </div>
   )
 }

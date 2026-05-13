@@ -1,8 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -22,21 +20,24 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { BorrowFormDialog } from "@/components/borrow-form-dialog"
 import { DeleteDialog } from "@/components/delete-dialog"
+import { returnBook } from "@/lib/database"
 import { Plus, Search, MoreHorizontal, RotateCcw, Trash2 } from "lucide-react"
 import { format, isPast } from "date-fns"
 import { toast } from "sonner"
-import type { Borrowing } from "@/types/database"
+import type { Book, Member, BorrowingWithDetails } from "@/types/database"
 
 interface BorrowingsTableProps {
-  borrowings: Borrowing[]
+  borrowings: BorrowingWithDetails[]
+  books: Book[]
+  members: Member[]
+  onUpdate?: () => void
 }
 
-export function BorrowingsTable({ borrowings }: BorrowingsTableProps) {
-  const router = useRouter()
+export function BorrowingsTable({ borrowings, books, members, onUpdate }: BorrowingsTableProps) {
   const [search, setSearch] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [selectedBorrowing, setSelectedBorrowing] = useState<Borrowing | null>(null)
+  const [selectedBorrowing, setSelectedBorrowing] = useState<BorrowingWithDetails | null>(null)
 
   const filteredBorrowings = borrowings.filter(
     (borrowing) =>
@@ -44,48 +45,22 @@ export function BorrowingsTable({ borrowings }: BorrowingsTableProps) {
       borrowing.member?.name.toLowerCase().includes(search.toLowerCase())
   )
 
-  const handleReturn = async (borrowing: Borrowing) => {
-    const supabase = createClient()
-
+  const handleReturn = async (borrowing: BorrowingWithDetails) => {
     try {
-      // Update borrowing status
-      const { error: borrowError } = await supabase
-        .from("borrowings")
-        .update({
-          status: "returned",
-          return_date: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", borrowing.id)
-
-      if (borrowError) throw borrowError
-
-      // Update book available copies
-      if (borrowing.book) {
-        const { error: bookError } = await supabase
-          .from("books")
-          .update({
-            available_copies: borrowing.book.available_copies + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", borrowing.book_id)
-
-        if (bookError) throw bookError
-      }
-
+      await returnBook(borrowing.id, borrowing.book_id)
       toast.success("Book returned successfully")
-      router.refresh()
+      onUpdate?.()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to return book")
     }
   }
 
-  const handleDelete = (borrowing: Borrowing) => {
+  const handleDelete = (borrowing: BorrowingWithDetails) => {
     setSelectedBorrowing(borrowing)
     setDeleteOpen(true)
   }
 
-  const getStatusBadge = (borrowing: Borrowing) => {
+  const getStatusBadge = (borrowing: BorrowingWithDetails) => {
     if (borrowing.status === "returned") {
       return <Badge variant="secondary">Returned</Badge>
     }
@@ -183,7 +158,13 @@ export function BorrowingsTable({ borrowings }: BorrowingsTableProps) {
         </Table>
       </div>
 
-      <BorrowFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      <BorrowFormDialog 
+        open={formOpen} 
+        onOpenChange={setFormOpen} 
+        books={books}
+        members={members}
+        onSuccess={onUpdate}
+      />
 
       {selectedBorrowing && (
         <DeleteDialog
@@ -192,6 +173,7 @@ export function BorrowingsTable({ borrowings }: BorrowingsTableProps) {
           itemType="borrowing"
           itemId={selectedBorrowing.id}
           itemName={selectedBorrowing.book?.title || "this borrowing"}
+          onSuccess={onUpdate}
         />
       )}
     </div>

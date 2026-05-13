@@ -25,9 +25,10 @@ import type { Book } from "@/types/database"
 
 interface BooksTableProps {
   books: Book[]
+  onUpdate?: () => void
 }
 
-export function BooksTable({ books }: BooksTableProps) {
+export function BooksTable({ books, onUpdate }: BooksTableProps) {
   const [search, setSearch] = useState("")
   const [formOpen, setFormOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -147,6 +148,7 @@ export function BooksTable({ books }: BooksTableProps) {
         open={formOpen}
         onOpenChange={setFormOpen}
         book={selectedBook}
+        onSuccess={onUpdate}
       />
 
       {selectedBook && (
@@ -156,6 +158,7 @@ export function BooksTable({ books }: BooksTableProps) {
           itemType="book"
           itemId={selectedBook.id}
           itemName={selectedBook.title}
+          onSuccess={onUpdate}
         />
       )}
     </div>

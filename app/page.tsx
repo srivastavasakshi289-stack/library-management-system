@@ -1,75 +1,86 @@
-import { createClient } from "@/lib/supabase/server"
+"use client"
+
+import { Sidebar } from "@/components/sidebar"
 import { StatsCards } from "@/components/stats-cards"
 import { RecentActivity } from "@/components/recent-activity"
-import { isPast } from "date-fns"
-import type { DashboardStats, Borrowing } from "@/types/database"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getStats, getBorrowings } from "@/lib/database"
+import useSWR from "swr"
+import { Spinner } from "@/components/ui/spinner"
 
-export default async function DashboardPage() {
-  const supabase = await createClient()
+export default function DashboardPage() {
+  const { data: stats, isLoading: statsLoading, error: statsError } = useSWR('stats', getStats)
+  const { data: borrowings, isLoading: borrowingsLoading, error: borrowingsError } = useSWR('borrowings', getBorrowings)
 
-  // Fetch all data for dashboard
-  const [booksRes, membersRes, borrowingsRes] = await Promise.all([
-    supabase.from("books").select("*"),
-    supabase.from("members").select("*"),
-    supabase.from("borrowings").select("*, book:books(*), member:members(*)").order("created_at", { ascending: false }),
-  ])
-
-  const books = booksRes.data || []
-  const members = membersRes.data || []
-  const borrowings = (borrowingsRes.data || []) as Borrowing[]
-
-  const activeBorrowings = borrowings.filter((b) => b.status === "borrowed")
-  const overdueBorrowings = activeBorrowings.filter((b) => 
-    isPast(new Date(b.due_date))
-  )
-
-  const stats: DashboardStats = {
-    totalBooks: books.length,
-    totalMembers: members.length,
-    activeBorrowings: activeBorrowings.length,
-    overdueBorrowings: overdueBorrowings.length,
-  }
+  const isLoading = statsLoading || borrowingsLoading
+  const hasError = statsError || borrowingsError
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome to your library management system
-        </p>
-      </div>
-
-      <div className="space-y-8">
-        <StatsCards stats={stats} />
-
-        <div className="grid gap-8 lg:grid-cols-2">
-          <RecentActivity borrowings={borrowings} />
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Quick Stats</h3>
-            <div className="grid gap-4">
-              <div className="bg-card border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Total Book Copies</p>
-                <p className="text-2xl font-bold">
-                  {books.reduce((sum, b) => sum + b.total_copies, 0)}
-                </p>
-              </div>
-              <div className="bg-card border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Available Copies</p>
-                <p className="text-2xl font-bold">
-                  {books.reduce((sum, b) => sum + b.available_copies, 0)}
-                </p>
-              </div>
-              <div className="bg-card border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Active Members</p>
-                <p className="text-2xl font-bold">
-                  {members.filter((m) => m.membership_status === "active").length}
-                </p>
-              </div>
-            </div>
-          </div>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="flex-1 p-8 bg-background">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to your library management system</p>
         </div>
-      </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Spinner className="h-8 w-8" />
+          </div>
+        ) : hasError ? (
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-muted-foreground text-center">
+                Unable to load data. Please check your database connection.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <StatsCards stats={stats} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Borrowings</CardTitle>
+                  <CardDescription>Latest book checkouts and returns</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RecentActivity borrowings={borrowings?.slice(0, 5) || []} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Stats</CardTitle>
+                  <CardDescription>Library overview at a glance</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-2 border-b border-border">
+                      <span className="text-muted-foreground">Books in circulation</span>
+                      <span className="font-semibold">{stats?.activeBorrowings || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-border">
+                      <span className="text-muted-foreground">Available for checkout</span>
+                      <span className="font-semibold">{stats?.availableBooks || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-border">
+                      <span className="text-muted-foreground">Active members</span>
+                      <span className="font-semibold">{stats?.activeMembers || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-muted-foreground">Overdue returns</span>
+                      <span className="font-semibold text-destructive">{stats?.overdueBorrowings || 0}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
+      </main>
     </div>
   )
 }

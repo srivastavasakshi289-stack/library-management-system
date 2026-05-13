@@ -1,25 +1,40 @@
-import { createClient } from "@/lib/supabase/server"
+"use client"
+
+import { Sidebar } from "@/components/sidebar"
 import { BorrowingsTable } from "@/components/borrowings-table"
-import type { Borrowing } from "@/types/database"
+import { getBorrowings, getBooks, getMembers } from "@/lib/database"
+import useSWR from "swr"
+import { Spinner } from "@/components/ui/spinner"
 
-export default async function BorrowingsPage() {
-  const supabase = await createClient()
+export default function BorrowingsPage() {
+  const { data: borrowings, isLoading: borrowingsLoading, mutate } = useSWR('borrowings', getBorrowings)
+  const { data: books, isLoading: booksLoading } = useSWR('books', getBooks)
+  const { data: members, isLoading: membersLoading } = useSWR('members', getMembers)
 
-  const { data: borrowings } = await supabase
-    .from("borrowings")
-    .select("*, book:books(*), member:members(*)")
-    .order("created_at", { ascending: false })
+  const isLoading = borrowingsLoading || booksLoading || membersLoading
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Borrowings</h1>
-        <p className="text-muted-foreground mt-1">
-          Track book borrowings and returns
-        </p>
-      </div>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="flex-1 p-8 bg-background">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Borrowings</h1>
+          <p className="text-muted-foreground">Track book borrowings and returns</p>
+        </div>
 
-      <BorrowingsTable borrowings={(borrowings as Borrowing[]) || []} />
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Spinner className="h-8 w-8" />
+          </div>
+        ) : (
+          <BorrowingsTable 
+            borrowings={borrowings || []} 
+            books={books || []}
+            members={members || []}
+            onUpdate={mutate} 
+          />
+        )}
+      </main>
     </div>
   )
 }
